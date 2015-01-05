@@ -1,0 +1,228 @@
+A Comparison of Ruby and Go
+
+Hari haran
+https://github.com/hariharan-uno
+@hariharan_uno
+
+
+* Introduction
+
+Ruby has been the workhorse for web development for the past few years and there has been a lot of momentum towards Go recently. This talk tries to show some of the differences between Ruby and Go, while explaining a bit about the features of Go and conclude it with use cases for each language.
+
+* Go
+
+Go is a young language, open sourced in 2009. 
+
+* Why?
+
+Go fast!
+
+Make programming fun again.
+
+* Fun?? Static Languages?? 
+
+Compiled, statically-typed languages (C, C++, Java) require too much typing and too much typing:
+
+verbose, lots of repetition
+too much focus on type hierarchy
+types get in the way as much as they help
+compiles take far too long
+
+* Dynamic languages
+
+Dynamic languages (Ruby, Python, JavaScript) fix these problems (no more types, no more compiler) but introduce others:
+
+errors at run time that should be caught statically
+no compilation means slow code
+most of the dynamic languages are atleast a decade old and do not solve the modern computing problems regarding networking, multi core processors, etc.
+
+Combine the best of both!
+
+* Hello World
+
+.play codes/hello.go
+
+* Syntax
+
+Syntax is the user interface of a language
+
+Go currently has just 25 keywords which is very less compared to other languages.
+C++ has 84 and Ruby has 42
+
+.link http://en.cppreference.com/w/cpp/keyword http://en.cppreference.com/w/cpp/keyword
+.link  http://ruby-doc.org/docs/keywords/1.9 http://ruby-doc.org/docs/keywords/1.9  
+
+* Variable declaration
+
+Don't be scared of types in Go
+
+    var x int = 2       // explicit
+    x := 2              // derived
+
+* Public and Private
+
+upper case initial letter: `Name` is visible to clients of package
+otherwise: `name` is not visible to clients of package
+
+* Composition not inheritance
+
+Go takes an unusual approach to object-oriented programming, allowing methods on any type, not just classes, but without any form of type-based inheritance like subclassing. This means there is no type hierarchy. 
+
+In Go, an interface is just a set of methods. For example,
+
+.code codes/measurer.go
+
+* Interfaces contd...
+
+All data types that implement these methods satisfy this interface implicitly; there is no implements declaration. That said, interface satisfaction is statically checked at compile time so despite this decoupling interfaces are type-safe
+
+* Stringer
+
+Stringer is implemented by any value that has a String method,
+which defines the *native* format for that value.
+The String method is used to print values passed as an operand
+to any format that accepts a string or to an unformatted printer
+such as Print.
+
+    type Stringer interface {
+         String() string
+    }
+
+* Example
+
+.play codes/stringer.go
+
+* Simpler example
+  
+.code codes/week.go /^type /,/^}/
+
+* Week contd...
+
+.play codes/week.go /^func main/,/^}/
+
+* Features in Go
+
+- Tooling..tooling..tooling!
+- Gofmt (no tabs vs spaces wars)
+- Multiple return values
+- Goroutines (CSP)
+- Composition not inheritance
+- Compiled
+- Excellent standard and testing library
+- Community bent towards standardizing things
+- Blazing fast compilation
+- Cross compilation
+- No central package management server (like npm or gem) >> no single point of failure
+
+
+
+* Disadvantages or advantages? of Go
+
+No Generics
+No method overloading
+No operator overloading
+
+But lack of these features keeps the language simple and fun. You can learn the language in a weekend.
+
+* Concurrency
+
+Concurrent asynchronous programming as a part of language and not as a library
+    
+    go backgroundJob() // runs concurrently
+    somefunction()
+
+You can explicitly specify number of CPUs to use.
+Concurrent and Parallel programming seems trivial in Go. In the future, you don't even need to specify the cores...the compiler will be smart enough to recognize and use all the cores.
+
+* Dependencies in Go
+
+    package A imports package B;
+    package B imports package C;
+    package A does not import package C;
+
+- compile C.go, B.go, then A.go
+- to compile A.go, compiler reads only B.o but not C.o
+
+At scale, this can be a huge speedup.
+
+* Dependencies in other languages
+  
+- C: #include <stdio.h> reads  *360* *lines* from *9* *files*
+- C++: #include <iostream> reads  *25,326* *lines* from *131* *files*
+- Objective-C: #include <Cocoa/Cocoa.h> reads  *112,047* *lines* from *689* *files*
+
+But, we haven't started writing our actual code yet.
+Same story in Java, Ruby, but reading binaries instead of source files.
+
+In Go, 
+
+    import "fmt" 
+reads *one* file:
+   195 lines summarizing 6 dependent packages
+
+On a large scale, the improvement is exponential.
+
+
+* Benchmark Comparison Ruby vs Go
+
+.link http://sendgrid.com/blog/intro-to-go-programming-language/ http://sendgrid.com/blog/intro-to-go-programming-language/
+
+.image images/govsruby.png
+
+* Load test (Ruby)
+
+.image images/boom/ruby.png
+
+* Loadtest (Go)
+
+.image images/boom/go.png
+
+* Advantages of Ruby
+
+Pretty straight forward to create a DSL
+Maturity in frameworks...very easy to accomplish simple stuff
+REPL (irb)
+A bit less verbose
+Traditional OOP makes it newbie friendly
+
+* Disadvantages of Ruby
+*Slow*
+Framework overtakes the language
+Lots of redundant features
+Incompatible libraries
+Exceptions
+GIL
+
+* How Go solves these?
+Compiled but expressive and simple.
+
+The http package in the standard library can be used for most of the tasks. Even if we need some extra feature, a middleware can be built to accomplish it, without changing the code.
+
+Minimal but functional features. 
+
+
+Go enforces you to keep the master branch of your library compatible or make a new repo
+
+* Error handling
+
+Proper error handling using multiple return values.
+Generally exported functions of any package return a value and an error along with it. So this kind of an approach is very common:
+
+    x, err := extract.Links("http://google.com")
+    if err != nil {
+        // Handle errors
+    }
+
+* Conclusion
+
+We expect people to notice missing features. Don't let that stop you from exploring the features that Go does have.
+
+Let's Go!
+
+
+* References
+
+.link http://talks.golang.org/2012/splash.article http://talks.golang.org/2012/splash.article
+.link http://talks.golang.org/2010/go_talk-20100112.html http://talks.golang.org/2010/go_talk-20100112.html
+.link http://www.youtube.com/watch?v=7VcArS4Wpqk http://www.youtube.com/watch?v=7VcArS4Wpqk
+.link http://www.youtube.com/watch?v=-zz-byus8DA Rails Conf 2013 What Ruby Developers Can Learn From Go by Lionel Barrow
