@@ -1,0 +1,193 @@
+Object Classification using HEX graphs
+
+Hari haran
+Neha Singh Chauhan
+
+* Abstract
+We study how to perform object classification in a principled way that exploits the rich structure of real world labels.
+We base our project on a new model developed by Jia Deng, Nan Ding, et al., that allows encoding of flexible relations between labels.
+We study *Hierarchy*and*Exclusion*(HEX)* graphs, a new formalism that captures semantic relations between any two labels applied to the same object: mutual exclusion, overlap and subsumption.
+
+* Introduction
+
+
+
+* Classifiers
+Object classification, assigning semantic labels to an object, is a fundamental problem in many areas and especially in computer vision.
+
+* Problem Statement
+.image images/problem.png
+.caption Given a feature vector, assign probabilities to each of a set of labels
+
+* Current Approaches
+
+* Multiclass Classification
+predict one label from a set of mutually exclusive labels (e.g ILSVRC)
+
+.image images/imagenet.png
+.caption Large Scale Visual Recognition Challenge 
+
+* Binary Classification
+make decisions about each label independently (e.g PASCAL VOC Challenges)
+
+.image images/pascalvoc.png
+.caption Visual Object Classes Challenges
+
+* Erraneous Assumptions
+
+* 
+
+Both the models do not accurately capture the semantic complexity of real world.
+
+*Multiclass*classification* tasks typically assume a set of mutually exclusive labels. We can constrain the label set to be mutually exclusive but this assumption becomes increasingly impractical as we consider larger, more realistic label sets.
+
+This is because the same object can often be described by multiple labels.
+
+* 
+
+An object classified as _husky_ is automatically a _dog_, meanwhile it may or may not be a _puppy_.
+
+Making _husky_, _dog_, and _puppy_ mutually exclusive labels clearly violates real world semantics.
+
+* 
+
+*Independent*binary*classifiers*, on the other hand, ignore the constraints between labels and can thus handle overlapping labels. But this can lead to inconsistent predictions such as an object being both a dog and a cat, or a husky but not a dog.
+
+In addition, discarding the label relations misses the opportunity to transfer knowledge during learning. 
+
+* Example
+
+In practical settings training images are not always annotated to the most specific labels,  many Internet images are simply labeled as _dog_ instead of _husky_ or _German_Shepherd_.
+
+Intuitively, learning a good model for _dog_ should benefit learning breeds of dogs (and vice versa) but training independent binary classifiers will not help in transferring this potential knowledge.
+
+* Goal
+
+Our goal is to develop a new classification model that allows flexible encoding of relations based on prior knowledge, thus overcoming the limitations of the overly restrictive multiclass model and the overly relaxed independent binary classifiers
+
+* Approach
+To overcome the previous limitations,we take into account the semantic structure of the labels and model them as Hierarchy and Exclusion (HEX) graphs. We approach it in 2 parts:
+
+- Formulating Hierarchy and Exclusion (HEX) graphs
+- Utilizing a probabilistic classification model leveraging HEX graphs
+
+* HEX Graphs
+A new formalism allowing flexible specification of relations between labels applied to the same object: 
+
+- mutual exclusion (e.g. an object cannot be dog and cat)
+- overlapping (e.g. a husky may or may not be a puppy and vice versa)
+- subsumption (e.g. all huskies are dogs).
+
+* Definitions
+
+* 
+.image images/def1.png
+
+- Each node v represents a distinct label. 
+- An edge (vi, vj) is a hierarchy edge, indicating that label i is a parent of label j.
+- An edge (vi, vj) is an exclusion edge, indicating that label i and j are mutually exclusive.
+- If two labels share no edge, it means they overlap, i.e. each label can turn on or off without constraining each other.
+
+* Example
+.image images/hex_example.png
+.caption HEX graphs capture relations between labels applied to the same object.
+
+* Constraints
+- Each label takes binary values.
+Each edge then defines a constraint on values the two labels can take.
+
+- A hierarchy edge (vi, vj) means an assignment of (vi, vj) = (0,1) is illegal.
+- An exclusion edge (vi, vj) means an assignment of (vi, vj) = (1,1) is illegal.
+
+These local constraints allow us to assign global values legally.
+
+These constraints can be specified formally as:
+
+* 
+
+.image images/def2.png
+
+* Consistency
+
+* Problem
+So far our definition of the HEX graph allows arbitrary placement of exclusion edges. This, however, can result in non-sensible graphs.
+
+For example, it allows label vi and vj to have both hierarchy and exclusion edges, i.e. vi subsumes vj and, vi and vj are exclusive. This makes label vj *dead*, meaning that it is always 0 and thus cannot be applied to any object instance without causing a contradiction.
+
+If it takes 1, then it’s parent vi must take value 1 per the hierarchy edge and also take 0 per the exclusion edge. 
+
+This demonstrates the need for a concept of *consistency*.
+
+* 
+
+A graph is consistent if every label is *active*, i.e. it can take value either 1 or 0 and there always exists an assignment to the rest of labels such that the whole assignment is legal.
+
+* 
+.image images/def3.png
+.caption Consistency is in fact solely determined by the graph structure, it is equivalent to the condition that for any label, there is no exclusion edge between its ancestors or between itself and its ancestors.
+
+* 
+.image images/th1.png
+.caption This theorem is very important algorithmically, as it allows us to test consistency without listing all the state space. α(vi) is the set of all ancestors of vi ∈ V 
+
+* Classification Model
+A HEX graph encodes our prior knowledge about label relations. We can thus define a probabilistic classification model based on a HEX graph G = (V, Eh , Ee)
+
+_x_ is the input
+_y_ are labels
+_f_ is the function with parameters _w_, that maps an input to a set of scores, one for each label. It can be a linear model or a Deep Neural Network.
+
+* Distribution
+
+.image images/jointdist.png
+.caption The Joint distribution of the assignment is like a typical CRF but assigns probability to valid states
+
+
+To compute the probability of a label, we marginalize all other labels. The scores _fi_(x;_w)_ can be thought of as raw classification scores (local evidence) for each label and our model can convert them into marginal probabilities.
+
+* Properties of the model
+- the probability of any illegal assignment is zero
+- to compute the probability of a legal assignment, we take all labels with value 1, sum their scores, exponentiate, and then normalize
+- the marginal label probabilities are always consistent with the label relations: probability of _dog_ is always bigger than that of _husky_ and probabilities of _dog_ and _cat_ cannot add to more than 1
+- the model handles unknown categories gracefully by assuming an open world. 
+
+* Open World
+
+For each node on the hierarchy, it is legal to assign itself a value 1 and all its descendants value 0. e.g. an object is a _dog_ but none of the known dog subcategories. If the model sees novel dog subcategory, it can produce a large marginal for dog but will not be compelled to assign a large probability to a known subcategory
+
+* Special Cases
+
+The HEX graph model unifies standard existing models.
+
+- If we use a HEX graph with pairwise exclusion edges and no hierarchy edges, it will give us a multinomial regression
+
+- If we use a HEX graph with no edges, i.e. the labels are independent. We arrive at a independent logistic regression
+
+* Joint hierarchical modeling
+
+This model allows flexible joint modeling of hierarchical categories, thus enabling potential knowledge transfer.
+
+- for all graphs the marginal probability of a label depends on the sum of its ancestors' scores
+- the probability of an internal node of the hierarchy also depends on the probabilities of its descendants because we need to marginalize over all possible states of the descendants.
+
+* Learning
+
+In learning we maximize the (marginal) likelihood of the observed ground truth labels using stochastic gradient descent (SGD). For the following
+
+.image images/loss_pre.png
+
+.image images/loss.png
+.caption Loss function deals with missing labels by marginalizing over extra latent variables
+
+* Inference
+
+In general CRF inference is exponential in problem size.
+
+However, the HEX graph drastically reduces the state space size. Most states won’t be legal. The bigger the HEX graph, the better.
+
+* References
+
+Deng, Jia, et al. "Large-Scale Object Classification using Label Relation Graphs." Computer Vision-ECCV 2014. Springer International Publishing, 2014. 48-64.
+
+Lafferty, John, Andrew McCallum, and Fernando CN Pereira. "Conditional random fields: Probabilistic models for segmenting and labeling sequence data." (2001).
+
