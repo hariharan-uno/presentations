@@ -1,0 +1,171 @@
+Object Classification using HEX graphs
+
+Hari haran
+Neha Singh Chauhan
+
+* Recap
+
+* Abstract
+We study how to perform object classification in a principled way that exploits the rich structure of real world labels.
+We base our project on a new model developed by Jia Deng, Nan Ding, et al., that allows encoding of flexible relations between labels.
+We study *Hierarchy*and*Exclusion*(HEX)* graphs, a new formalism that captures semantic relations between any two labels applied to the same object: mutual exclusion, overlap and subsumption.
+
+
+* Problem Statement
+.image images/problem.png
+.caption Given a feature vector, assign probabilities to each of a set of labels
+
+* Existing Problems
+
+The current approaches of Multiclass and Binary classification do not accurately capture the semantic complexity of real world.
+
+* Goal
+
+Our goal is to develop a new classification model that allows flexible encoding of relations based on prior knowledge, thus overcoming the limitations of the overly restrictive multiclass model and the overly relaxed independent binary classifiers
+
+* Approach
+To overcome the previous limitations,we take into account the semantic structure of the labels and model them as Hierarchy and Exclusion (HEX) graphs. We approach it in 2 parts:
+
+- Formulating Hierarchy and Exclusion (HEX) graphs
+- Utilizing a probabilistic classification model leveraging HEX graphs
+
+* HEX Graphs
+A new formalism allowing flexible specification of relations between labels applied to the same object: 
+
+- mutual exclusion
+- overlapping
+- subsumption (hierarchy)
+
+
+* Example
+.image images/hex_example.png
+.caption HEX graphs capture relations between labels applied to the same object.
+
+* Constraints
+- Each label takes binary values.
+Each edge then defines a constraint on values the two labels can take.
+
+- A hierarchy edge (vi, vj) means an assignment of (vi, vj) = (0,1) is illegal.
+- An exclusion edge (vi, vj) means an assignment of (vi, vj) = (1,1) is illegal.
+
+These local constraints allow us to assign global values legally.
+
+* Classification Model
+A HEX graph encodes our prior knowledge about label relations. We can thus define a probabilistic classification model based on a HEX graph G = (V, Eh , Ee)
+
+_x_ is the input
+_y_ are labels
+_f_ is the function with parameters _w_, that maps an input to a set of scores, one for each label. It can be a linear model or a Deep Neural Network.
+
+* Distribution
+
+.image images/jointdist.png
+.caption The Joint distribution of the assignment is like a typical CRF but assigns probability to valid states
+
+
+To compute the probability of a label, we marginalize all other labels. The scores _fi_(x;_w)_ can be thought of as raw classification scores (local evidence) for each label and our model can convert them into marginal probabilities.
+
+* Implementation
+We are using a feedforward neural network layer with a hidden layer size of 10.
+
+* Training
+
+During training, we are updating weights and bias using Scaled conjugate gradient backpropagation
+
+* HEX graph CRF layer
+
+We take the raw scores obtained from the feed forward neural network and use the probabilistic model of HEX graphs.
+i.e. we take all labels with value 1, sum their scores, exponentiate, and then normalize.
+
+.image images/jointdist.png
+.caption The Joint distribution of the assignment is like a typical CRF but assigns probability to valid states
+
+We obtain probabilistic values for each label in accordance.
+
+* Analyzing the effects of Sparsification and Densification of graphs
+
+* Equivalent graphs
+.image images/equivalent_graphs.png
+.caption Equivalent HEX graphs.
+
+* Input HEX graph
+
+* Sparsified / Default graph
+.image images/sparsified_input_graph.png
+.caption Sparsified / Default HEX graph
+
+* Densified graph
+.image images/densified_input_graph.png
+.caption Densified HEX graph
+
+* 
+
+Redundant edges are those that can be removed or added without changing the state space.
+
+A graph G is minimally sparse if it has no redundant edges. A graph G is maximally dense if every redundant edge is in G.
+
+* 
+
+.image images/sparse_vs_dense_subgraphs.png
+
+* Comparison results
+The mean of the percentage changes of the CRF probability of sparsified vs densified HEX graphs are calculated.
+
+Abyssinian cat +7.67%
+Cat -11.8%
+Dog -10.46%
+Persian cat +7.67%
+Pug +4.99%
+Puppy +5.68%
+
+As we are going down the graph, the absolute percentage changes are decreasing.
+
+Also, as the changes are negligible in the context of a large scale graph, we can reduce the computational complexity by using the sparsified graph for calculating the CRF probabilities efficiently.
+
+* Exact Inference
+
+* 
+
+- As the graphical models are the complete models for the variables and their relationships, it can be used to answer probabilistic queries about them.
+- The junction tree algorithm can be used for the purpose of exact inference because it cuts down the complexity of large graphs by creating junction tree.
+
+* Building the junction tree for the HEX graph
+
+- First the graph is moralised by changing all the directed hierarchical edges
+- Now the moralised graph is fully triangulated
+- Now the clique tree is made of this triangulated graph which satisfies the running intersection property, this is called a junction tree.
+- The cliques are made into a single variable nodes while the common nodes between the graphs are treated as factor nodes
+- Now the two way message passing using sum-product algorithm is performed on the junction tree
+- This gives the marginal probability distribution of the graphs
+
+* Pitfalls discovered
+
+During the implementation of exact inferencing using junction tree algorithm, the following pitfalls were discovered:
+
+*The* *reference* *paper* *uses* *an* *erraneous* *conversion* *of* *the* *HEX* *graph* *into* *a* *generic* *CRF.* 
+It is flawed as the fundamental meaning of directed and undirected edges is different in HEX graphs. For example, If we a -> b is converted to a-b during moralisation, it leads to a flawed semantic relationship.
+
+*Message* *passing* *when* *a* *single* *clique* *exists*
+For some graphs such as the input graph considered, there exist only a single clique on which message passing is not possible.
+
+* Summary of the work done
+
+* 
+
+- Implemented the HexGraph class and its methods such as ancestors, descendants, isConsistent, etc.
+- Implemented a feedforward neural network with 10 hidden layers to compute the raw probability scores.
+- Training done using Scaled Conjugate Gradient backpropagation.
+- Implemented a HEX graph CRF layer in which the raw scores were used as input to obtain the CRF probabilities, in accordance with the semantic relations.
+- Compared raw scores with CRF probabilities.
+- The HEX graph was considered in 2 ways, minimally sparsified and maximally densified.
+- The CRF probabilities of both types were then statistically compared.
+- The comparison graphs are yielded as results.
+- Exhaustive state space listed for the input HEX graph.
+- Pitfalls were found regarding the exact inferencing methods for HEX graphs. 
+
+* References
+
+Deng, Jia, et al. "Large-Scale Object Classification using Label Relation Graphs." Computer Vision-ECCV 2014. Springer International Publishing, 2014. 48-64.
+
+Lafferty, John, Andrew McCallum, and Fernando CN Pereira. "Conditional random fields: Probabilistic models for segmenting and labeling sequence data." (2001).
+
